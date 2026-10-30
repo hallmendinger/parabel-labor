@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>:root{color-scheme:light}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Parabel-Labor</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+/* Layout: Graph links gross, Regler und Kennwerte rechts; auf dem Handy untereinander */
+:root {
+  --bg: #f6f7f9; --panel: #ffffff; --fg: #1d2330; --muted: #5d6677; --line: #dde1e8;
+  --grid: #e6e9ef; --axis: #8a93a3; --ghost: #b9c0cc;
+  --pa: #2457c5; --pb: #c25a12; --pc: #17834f; --curve: #1d2330;
+  --font: "Atkinson Hyperlegible", system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #12151b; --panel: #1a1e26; --fg: #e8ebf1; --muted: #9aa3b4; --line: #2b313d;
+  --grid: #232833; --axis: #6b7486; --ghost: #4a5262;
+  --pa: #7aa2ff; --pb: #ff9a52; --pc: #4fd08e; --curve: #f1f3f7; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #12151b; --panel: #1a1e26; --fg: #e8ebf1; --muted: #9aa3b4; --line: #2b313d;
+  --grid: #232833; --axis: #6b7486; --ghost: #4a5262;
+  --pa: #7aa2ff; --pb: #ff9a52; --pc: #4fd08e; --curve: #f1f3f7; color-scheme: dark }
+body { background: var(--bg); color: var(--fg); font-family: var(--font); font-size: 16px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 20px; }
+.wrap { max-width: 1100px; margin: 0 auto; display: grid; gap: 16px; }
+header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
+h1 { font-size: 1.5rem; margin: 0; text-wrap: balance; }
+.switch { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; padding: 3px; background: var(--panel); }
+.switch button { font: inherit; font-size: .95rem; border: 0; background: none; color: var(--muted); padding: 6px 14px; border-radius: 999px; cursor: pointer; }
+.switch button[aria-pressed="true"] { background: var(--fg); color: var(--bg); font-weight: 700; }
+.switch button:focus-visible, .btn:focus-visible, input:focus-visible { outline: 2px solid var(--pa); outline-offset: 2px; }
+.main { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+@media (max-width: 760px) { .main { grid-template-columns: 1fr; } }
+.plot { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; aspect-ratio: 1; max-width: 100%; overflow: hidden; }
+canvas { width: 100%; height: 100%; display: block; touch-action: none; }
+.side { display: grid; gap: 16px; min-width: 0; }
+.formula { font-family: var(--mono); font-size: clamp(1.15rem, 3.4vw, 1.5rem); background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; overflow-x: auto; white-space: nowrap; }
+.formula .ca { color: var(--pa); font-weight: 700 } .formula .cb { color: var(--pb); font-weight: 700 } .formula .cc { color: var(--pc); font-weight: 700 }
+.sliders { display: grid; gap: 14px; }
+.sl { display: grid; grid-template-columns: 2rem 1fr 4.2rem; align-items: center; gap: 10px; }
+.sl label { font-family: var(--mono); font-weight: 700; font-size: 1.15rem; }
+.sl output { font-family: var(--mono); font-variant-numeric: tabular-nums; text-align: right; }
+.sl input[type=range] { width: 100%; }
+.sl.a label { color: var(--pa) } .sl.a input { accent-color: var(--pa) }
+.sl.b label { color: var(--pb) } .sl.b input { accent-color: var(--pb) }
+.sl.c label { color: var(--pc) } .sl.c input { accent-color: var(--pc) }
+.hint { font-size: .9rem; color: var(--muted); margin: -6px 0 0 2.6rem; line-height: 1.4; }
+dl { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; margin: 0; font-size: .98rem; }
+dt { color: var(--muted); } dd { margin: 0; font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.opts { display: grid; gap: 8px; font-size: .95rem; }
+.opts label { display: flex; gap: 8px; align-items: center; cursor: pointer; }
+.btn { font: inherit; font-size: .95rem; border: 1px solid var(--line); background: var(--panel); color: var(--fg); padding: 7px 14px; border-radius: 8px; cursor: pointer; justify-self: start; }
+.note { color: var(--pb); font-size: .95rem; min-height: 1.2em; margin: 0; }
+h2 { font-size: .8rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 0 0 8px; }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <h1>Parabel-Labor</h1>
+    <div class="switch" role="group" aria-label="Form der Gleichung">
+      <button id="modeN" aria-pressed="true">Normalform</button>
+      <button id="modeS" aria-pressed="false">Scheitelpunktform</button>
+    </div>
+  </header>
+
+  <div class="main">
+    <div class="plot"><canvas id="cv" aria-label="Graph der Parabel"></canvas></div>
+
+    <div class="side">
+      <div class="formula" id="formula"></div>
+
+      <div class="sliders" id="sliders"></div>
+      <p class="note" id="note"></p>
+
+      <div>
+        <h2>Kennwerte</h2>
+        <dl id="facts"></dl>
+      </div>
+
+      <div class="opts">
+        <label><input type="checkbox" id="optGhost" checked> Normalparabel y = x² zum Vergleich</label>
+        <label><input type="checkbox" id="optTrace"> <span id="traceLabel">Spur des Scheitels, wenn b sich ändert</span></label>
+        <button class="btn" id="reset">Zurücksetzen</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const R = 10; // sichtbarer Bereich: -R..R in x und y
+const state = { mode: "N", a: 1, b: 0, c: 0, u: 0, v: 0 };
+const DEF = {
+  N: [
+    { k: "a", cls: "a", min: -3, max: 3, step: 0.1, hint: "Öffnung und Streckung: a > 0 nach oben, a < 0 nach unten, |a| > 1 schmaler." },
+    { k: "b", cls: "b", min: -8, max: 8, step: 0.1, hint: "Verschiebt den Scheitel schräg; die Steigung im Punkt (0 | c) ist genau b." },
+    { k: "c", cls: "c", min: -8, max: 8, step: 0.1, hint: "Schnittpunkt mit der y-Achse: (0 | c)." }
+  ],
+  S: [
+    { k: "a", cls: "a", min: -3, max: 3, step: 0.1, hint: "Öffnung und Streckung, genau wie in der Normalform." },
+    { k: "u", cls: "b", min: -8, max: 8, step: 0.1, hint: "Verschiebung nach links/rechts. Achtung: (x − u), also u = 2 heisst nach rechts." },
+    { k: "v", cls: "c", min: -8, max: 8, step: 0.1, hint: "Verschiebung nach oben/unten." }
+  ]
+};
+const $ = id => document.getElementById(id);
+const fmt = (x, d = 2) => { const r = Math.round(x * 10 ** d) / 10 ** d; return (Object.is(r, -0) ? 0 : r).toString().replace(".", ","); };
+const ab = x => fmt(Math.abs(x));
+
+function coeffs() { // immer als a, b, c
+  if (state.mode === "N") return { a: state.a, b: state.b, c: state.c };
+  const { a, u, v } = state; return { a, b: -2 * a * u, c: a * u * u + v };
+}
+
+function buildSliders() {
+  const box = $("sliders"); box.innerHTML = "";
+  for (const d of DEF[state.mode]) {
+    const row = document.createElement("div");
+    row.className = "sl " + d.cls;
+    row.innerHTML = `<label for="s_${d.k}">${d.k}</label>
+      <input type="range" id="s_${d.k}" min="${d.min}" max="${d.max}" step="${d.step}" value="${state[d.k]}">
+      <output id="o_${d.k}">${fmt(state[d.k], 1)}</output>`;
+    const hint = document.createElement("p"); hint.className = "hint"; hint.textContent = d.hint;
+    box.append(row, hint);
+    row.querySelector("input").addEventListener("input", e => {
+      state[d.k] = parseFloat(e.target.value);
+      $("o_" + d.k).textContent = fmt(state[d.k], 1);
+      if (d.k === "a" || (state.mode === "N" && d.k === "c")) trail = [];
+      update();
+    });
+  }
+  $("traceLabel").textContent = state.mode === "N" ? "Spur des Scheitels, wenn b sich ändert" : "Spur des Scheitels, wenn u oder v sich ändern";
+}
+
+function formulaHTML() {
+  const s = (cls, val, first) => {
+    const sign = val < 0 ? "−" : (first ? "" : "+");
+    return { sign, num: `<span class="${cls}">${ab(val)}</span>` };
+  };
+  if (state.mode === "N") {
+    const { a, b, c } = state;
+    const A = `<span class="ca">${fmt(a)}</span>`;
+    return `y = ${A}x² ${b < 0 ? "−" : "+"} <span class="cb">${ab(b)}</span>x ${c < 0 ? "−" : "+"} <span class="cc">${ab(c)}</span>`;
+  }
+  const { a, u, v } = state;
+  return `y = <span class="ca">${fmt(a)}</span>(x ${u < 0 ? "+" : "−"} <span class="cb">${ab(u)}</span>)² ${v < 0 ? "−" : "+"} <span class="cc">${ab(v)}</span>`;
+}
+
+let trail = [];
+
+function facts() {
+  const { a, b, c } = coeffs();
+  const out = [];
+  if (Math.abs(a) < 1e-9) {
+    out.push(["Graph", "Gerade (a = 0)"], ["y-Achsenabschnitt", `(0 | ${fmt(c)})`]);
+    return out;
+  }
+  const xs = -b / (2 * a), ys = c - b * b / (4 * a);
+  out.push(["Scheitel S", `(${fmt(xs)} | ${fmt(ys)})`]);
+  out.push(["Öffnung", (a > 0 ? "nach oben" : "nach unten") + ", " + (Math.abs(a) > 1 ? "gestreckt" : Math.abs(a) < 1 ? "gestaucht" : "wie Normalparabel")]);
+  out.push(["Symmetrieachse", `x = ${fmt(xs)}`]);
+  out.push(["y-Achsenabschnitt", `(0 | ${fmt(c)})`]);
+  const D = b * b - 4 * a * c;
+  let ns;
+  if (D < -1e-9) ns = "keine";
+  else if (Math.abs(D) <= 1e-9) ns = `x = ${fmt(xs)} (doppelt)`;
+  else { const r = Math.sqrt(D), x1 = (-b - r) / (2 * a), x2 = (-b + r) / (2 * a); ns = `x₁ = ${fmt(Math.min(x1, x2))}, x₂ = ${fmt(Math.max(x1, x2))}`; }
+  out.push(["Nullstellen", ns]);
+  out.push([state.mode === "N" ? "Scheitelpunktform" : "Normalform",
+    state.mode === "N"
+      ? `y = ${fmt(a)}(x ${xs < 0 ? "+" : "−"} ${ab(xs)})² ${ys < 0 ? "−" : "+"} ${ab(ys)}`
+      : `y = ${fmt(a)}x² ${b < 0 ? "−" : "+"} ${ab(b)}x ${c < 0 ? "−" : "+"} ${ab(c)}`]);
+  return out;
+}
+
+// --- Zeichnen ---
+const cv = $("cv"), ctx = cv.getContext("2d");
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+
+function draw() {
+  const dpr = window.devicePixelRatio || 1, W = cv.clientWidth, H = cv.clientHeight;
+  if (cv.width !== Math.round(W * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); }
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, W, H);
+  const X = x => (x + R) / (2 * R) * W, Y = y => (R - y) / (2 * R) * H;
+
+  // Gitter
+  ctx.lineWidth = 1; ctx.strokeStyle = css("--grid");
+  ctx.beginPath();
+  for (let i = -R; i <= R; i++) { ctx.moveTo(X(i), 0); ctx.lineTo(X(i), H); ctx.moveTo(0, Y(i)); ctx.lineTo(W, Y(i)); }
+  ctx.stroke();
+  // Achsen
+  ctx.strokeStyle = css("--axis"); ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(X(-R), Y(0)); ctx.lineTo(X(R), Y(0)); ctx.moveTo(X(0), Y(-R)); ctx.lineTo(X(0), Y(R)); ctx.stroke();
+  ctx.fillStyle = css("--muted"); ctx.font = `12px ${css("--mono")}`;
+  ctx.textAlign = "center"; ctx.textBaseline = "top";
+  for (let i = -R + 2; i < R; i += 2) if (i) ctx.fillText(i, X(i), Y(0) + 4);
+  ctx.textAlign = "right"; ctx.textBaseline = "middle";
+  for (let i = -R + 2; i < R; i += 2) if (i) ctx.fillText(i, X(0) - 5, Y(i));
+  ctx.textAlign = "left"; ctx.fillText("x", X(R) - 12, Y(0) - 10); ctx.fillText("y", X(0) + 6, Y(R) + 10);
+
+  const curve = (f, color, width, dash) => {
+    ctx.strokeStyle = color; ctx.lineWidth = width; ctx.setLineDash(dash || []);
+    ctx.beginPath(); let started = false;
+    for (let px = 0; px <= W; px += 1) {
+      const x = px / W * 2 * R - R, y = f(x);
+      if (Math.abs(y) > 4 * R) { started = false; continue; }
+      started ? ctx.lineTo(px, Y(y)) : ctx.moveTo(px, Y(y)); started = true;
+    }
+    ctx.stroke(); ctx.setLineDash([]);
+  };
+  const dot = (x, y, color, r = 5) => { ctx.fillStyle = color; ctx.beginPath(); ctx.arc(X(x), Y(y), r, 0, 7); ctx.fill(); };
+
+  if ($("optGhost").checked) curve(x => x * x, css("--ghost"), 1.5, [6, 5]);
+
+  const { a, b, c } = coeffs();
+  const hasVertex = Math.abs(a) > 1e-9;
+  const xs = hasVertex ? -b / (2 * a) : 0, ys = hasVertex ? c - b * b / (4 * a) : 0;
+
+  // Spur
+  if ($("optTrace").checked && trail.length > 1) {
+    ctx.strokeStyle = css(state.mode === "N" ? "--pb" : "--muted"); ctx.globalAlpha = .55; ctx.lineWidth = 2; ctx.setLineDash([2, 4]);
+    ctx.beginPath(); trail.forEach(([x, y], i) => i ? ctx.lineTo(X(x), Y(y)) : ctx.moveTo(X(x), Y(y))); ctx.stroke();
+    ctx.setLineDash([]); ctx.globalAlpha = 1;
+  }
+
+  // Symmetrieachse
+  if (hasVertex) { ctx.strokeStyle = css("--muted"); ctx.lineWidth = 1; ctx.setLineDash([3, 4]); ctx.beginPath(); ctx.moveTo(X(xs), 0); ctx.lineTo(X(xs), H); ctx.stroke(); ctx.setLineDash([]); }
+
+  // Tangente in (0|c) zeigt die Bedeutung von b (nur Normalform)
+  if (state.mode === "N") curve(x => b * x + c, css("--pb"), 1.5, [8, 6]);
+
+  curve(x => a * x * x + b * x + c, css("--curve"), 3);
+
+  dot(0, c, css("--pc"), 6);
+  if (hasVertex) dot(xs, ys, css("--pa"), 6);
+}
+
+function update() {
+  const { a, b, c } = coeffs();
+  if (Math.abs(a) > 1e-9) {
+    const p = [-b / (2 * a), c - b * b / (4 * a)];
+    const last = trail[trail.length - 1];
+    if (!last || last[0] !== p[0] || last[1] !== p[1]) trail.push(p);
+    if (trail.length > 2000) trail.shift();
+  }
+  $("formula").innerHTML = formulaHTML();
+  $("note").textContent = Math.abs(a) < 1e-9 ? "Mit a = 0 fällt x² weg: Der Graph ist keine Parabel mehr, sondern eine Gerade." : "";
+  $("facts").innerHTML = facts().map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("");
+  draw();
+}
+
+function setMode(m) {
+  if (m === state.mode) return;
+  const { a, b, c } = coeffs();
+  if (m === "S") {
+    if (Math.abs(a) < 1e-9) { state.u = 0; state.v = c; }
+    else { state.u = -b / (2 * a); state.v = c - b * b / (4 * a); }
+    state.u = Math.max(-8, Math.min(8, state.u)); state.v = Math.max(-8, Math.min(8, state.v));
+  } else {
+    state.b = Math.max(-8, Math.min(8, b)); state.c = Math.max(-8, Math.min(8, c));
+  }
+  state.mode = m; trail = [];
+  $("modeN").setAttribute("aria-pressed", m === "N"); $("modeS").setAttribute("aria-pressed", m === "S");
+  buildSliders(); update();
+}
+
+$("modeN").onclick = () => setMode("N");
+$("modeS").onclick = () => setMode("S");
+$("optGhost").onchange = draw;
+$("optTrace").onchange = () => { trail = []; update(); };
+$("reset").onclick = () => { Object.assign(state, { a: 1, b: 0, c: 0, u: 0, v: 0 }); trail = []; buildSliders(); update(); };
+new ResizeObserver(draw).observe(cv);
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", draw);
+new MutationObserver(draw).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+
+// Startzustand: ein Beispiel, das gleich etwas zeigt
+Object.assign(state, { a: 0.5, b: 2, c: -3 });
+buildSliders(); update();
+</script>
+</body>
+</html>
